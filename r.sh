@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "=== Updating system packages ==="
-sudo apt update && sudo apt upgrade -y
+# sudo apt update && sudo apt upgrade -y
 
 echo "=== Installing required packages ==="
 sudo apt install -y bluez pulseaudio pulseaudio-module-bluetooth ofono pulseaudio-utils
