@@ -1,43 +1,43 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
 
-echo "=== Updating system packages ==="
-# sudo apt update && sudo apt upgrade -y
+# 1️⃣ بروزرسانی و نصب پیش‌نیازها
+echo "🔹 Updating system and installing dependencies..."
+sudo apt update
+sudo apt install -y bluez bluez-tools pulseaudio pulseaudio-module-bluetooth \
+                    pipewire pipewire-audio-client-libraries libspa-0.2-bluetooth \
+                    git wget
 
-echo "=== Installing required packages ==="
-sudo apt install -y bluez pulseaudio pulseaudio-module-bluetooth ofono pulseaudio-utils
+# 2️⃣ فعال‌سازی و شروع سرویس Bluetooth
+echo "🔹 Enabling Bluetooth service..."
+sudo systemctl enable bluetooth
+sudo systemctl start bluetooth
 
-echo "=== Enabling and starting oFono ==="
-sudo systemctl enable --now ofono
+# 3️⃣ شروع PipeWire برای مدیریت صوتی
+echo "🔹 Starting PipeWire..."
+systemctl --user enable pipewire
+systemctl --user start pipewire
 
-echo "=== Starting PulseAudio ==="
-pulseaudio --start || true
+# 4️⃣ دستورالعمل اتصال گوشی (SSH-friendly)
+echo "🔹 Pair, trust and connect your Android phone via bluetoothctl"
+echo "Please run the following commands inside bluetoothctl:"
+echo "
+power on
+agent on
+default-agent
+scan on
+# find your phone MAC and replace <MAC_PHONE>
+pair <MAC_PHONE>
+trust <MAC_PHONE>
+connect <MAC_PHONE>
+scan off
+"
 
-echo "=== Loading Bluetooth modules in PulseAudio ==="
-pactl load-module module-bluetooth-discover || echo "Module bluetooth-discover already loaded or failed"
-pactl load-module module-bluetooth-policy   || echo "Module bluetooth-policy already loaded or failed"
+# 5️⃣ آماده سازی PulseAudio/ PipeWire برای صدا
+echo "🔹 List available sources and sinks:"
+pactl list short sources
+pactl list short sinks
 
-echo "=== Installing WirePlumber if missing ==="
-if ! dpkg -l | grep -q wireplumber; then
-    sudo apt install -y wireplumber
-fi
-
-echo "=== Enabling WirePlumber ==="
-systemctl --user enable --now wireplumber || true
-
-echo "=== Restarting audio services ==="
-systemctl --user daemon-reload
-systemctl --user restart pipewire pipewire-pulse wireplumber || true
-
-echo "=== Bluetoothctl helper ==="
-echo "Use bluetoothctl to pair and connect your phone:"
-echo "   bluetoothctl"
-echo "   power on"
-echo "   agent on"
-echo "   default-agent"
-echo "   scan on"
-echo "   pair XX:XX:XX:XX:XX:XX"
-echo "   trust XX:XX:XX:XX:XX:XX"
-echo "   connect XX:XX:XX:XX:XX:XX"
-
-echo "=== Done ==="
+echo "✅ Setup complete. After pairing, you can set default sink/source:"
+echo "pactl set-default-source <SOURCE_NAME>"
+echo "pactl set-default-sink <SINK_NAME>"
